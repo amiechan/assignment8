@@ -47,10 +47,10 @@ scrabbleBoard[6] = { "letter" : "-" , "wordMultiplier" : 1 } ;
 
 // Scrabble object, keeps track of score, current tiles in bag,
 var scrabble = {
-    remainingTiles: ""
+    remainingTileString: "",
+    remainingTileCount: 100
 };
 
-var totalTiles = 100;
 
 // Update the current word being spelled by the Player
 function updateWord() {
@@ -125,22 +125,22 @@ function newGame() {
 // Randomize tiles for Player, also refills rack after submission
 function addLetterTiles() {
     // Count the number of tiles on the rack 
-    var rackTileCount = $("#rack img").length;
-    console.log("Number of tiles on the rack: " + rackTileCount);
+    var rackTileCount = $("#letterRack img").length;
+    console.log("Number of tiles on the rack before adding: " + rackTileCount);
 
     // Empty rack
-    if (rackTileCount == 0 && totalTiles == 0) {
+    if (rackTileCount == 0 && scrabble.remainingTileCount == 0) {
         // Player wins if all tiles are used -> empty rack + no remaining tiles 
         document.getElementById("playerResult").innerHTML = "you win! :)";
         $("#submitWordButton").prop("disabled", true).addClass("disabled");
     } else {
         // Number of tiles to add to fill the rack
         var tilesToFillRack = 7 - rackTileCount;
-
+        console.log("Number of tiles to fill the rack: " + tilesToFillRack);
         // If the number of tiles needed to fill the rack is greater than or equal to the total remaining, add all remaining, no need to randomize
-        if (tilesToFillRack >= totalTiles) {
+        if (tilesToFillRack >= scrabble.remainingTileCount) {
             // Add all remaining, no need to shuffle
-            addToRack(totalTiles);
+            addToRack(scrabble.remainingTileCount);
         } else {
             // Shuffle the number needed, add, update remaining count
             shuffleTiles();
@@ -152,42 +152,67 @@ function addLetterTiles() {
 // Shuffles the remaining tiles in the bag, can add to hand or skip
 // There is probably a better way to do this with filter(), maybe implement in the future
 function shuffleTiles() {
-    // Empty remaining tiles in bag
-    scrabble.remainingTiles = "";
+    // Empty remaining tiles in bag to shuffle again
+    scrabble.remainingTileString = "";
     // To randomize, create string of ALL available tiles alphabetically (accounts for distribution)
     for(let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++) {
         var letter = String.fromCharCode(i);
+        console.log(letter + " has remaining " + scrabbleTiles[letter].remaining + " tiles");
         // Concatenate the number remaining of each character into a string
-        scrabble.remainingTiles = scrabble.remainingTiles.concat(letter.repeat(scrabbleTiles[letter].remaining));
+        if (scrabbleTiles[letter].remaining != 0) {
+            scrabble.remainingTileString = scrabble.remainingTileString.concat(letter.repeat(scrabbleTiles[letter].remaining));
+        }    
     }
-    // Also concatenate the number remaining of blank tiles
-    scrabble.remainingTiles = scrabble.remainingTiles.concat("_".repeat(scrabbleTiles["_"].remaining));
-    console.log("Remaining tiles: " + scrabble.remainingTiles);
+    console.log("_ has remaining " + scrabbleTiles["_"].remaining + " tiles");
+
+    if (scrabbleTiles["_"].remaining != 0) {
+        scrabble.remainingTileString = scrabble.remainingTileString.concat("_".repeat(scrabbleTiles["_"].remaining));
+    } 
+
+    console.log("Remaining tiles: " + scrabble.remainingTileString);
     // Then "shuffle" into an string to be chosen from
     var remainingTilesArr = [];
-    remainingTilesArr = scrabble.remainingTiles.split("");
+    remainingTilesArr = scrabble.remainingTileString.split("");
     remainingTilesArr.sort(function() {
         return 0.5 - Math.random();
     });
     console.log("Shuffled remaining tiles: " + remainingTilesArr);
     // Shuffled string of remaining tiles
-    scrabble.remainingTiles = remainingTilesArr.join("");
+    scrabble.remainingTileString = remainingTilesArr.join("");
 }
 
 // Adding to hand
 function addToRack(amount) {
     var tilesToAdd = "";
-    
-    // Randomly choose the amount of letters required from remaining tiles
+    // Put remaining tiles string into an array 
+    var arr = [];
+    arr = scrabble.remainingTileString.split("");
+    console.log("Remaining tiles string: " + scrabble.remainingTileString);
+    // Choose the amount of random letters required from the remaining tiles
     for (var i = 0; i < amount; i++){
-        tilesToAdd += scrabble.remainingTiles.charAt(Math.floor(Math.random() * scrabble.remainingTiles.length));
+        var chosenIndex = 0;
+        console.log("Randomly picking #" + i + " letter:");
+        console.log("Initial remaining tiles array: " + arr);
+        // Randomly choose an index and select the letter
+        chosenIndex = Math.floor(Math.random() * arr.length);
+        
+        tilesToAdd += arr[chosenIndex];
+        console.log("Randomly chose: " + arr[chosenIndex] + " @ Index " + chosenIndex);
+        console.log("Randomly chosen letters so far: " + tilesToAdd);
+        // Remove it from the array
+        arr[chosenIndex] = " ";
+        console.log("Final remaining Tiles array without holes (" + arr.length + ") :" + arr);
+        // Filter to get array without holes
+        arr = arr.filter(e => String(e).trim());
+        console.log("Final remaining Tiles array without holes (" + arr.length + ") :" + arr);
     }
 
     // Rack to add tiles to
     var tileRack = document.getElementById("letterRack");
-
     // Convert to string and update remaining tile count
+    var tilesToAddArr = [];
     tilesToAddArr = tilesToAdd.split("");
+    console.log("Tiles to be added:" + tilesToAddArr);
     // For each letter to be added
     for (var i = 0; i < tilesToAddArr.length; i++) {
         var tileChosen = tilesToAddArr[i];
@@ -198,7 +223,9 @@ function addToRack(amount) {
         newTile.setAttribute("src", scrabbleTiles[tileChosen].src); 
         tileRack.appendChild(newTile);
         tileInit();
+        console.log("Initial remaining " + tileChosen + ": " + scrabbleTiles[tileChosen].remaining);
         scrabbleTiles[tileChosen].remaining--;
+        console.log("Final remaining " + tileChosen + ": " + scrabbleTiles[tileChosen].remaining);
     }
 
     updateRemainingTilesCount();
