@@ -197,6 +197,7 @@ function addToRack(amount) {
         newTile.setAttribute("letter", tileChosen);
         newTile.setAttribute("src", scrabbleTiles[tileChosen].src); 
         tileRack.appendChild(newTile);
+        tileInit();
         scrabbleTiles[tileChosen].remaining--;
     }
 
@@ -215,10 +216,7 @@ function updateRemainingTilesCount() {
     document.getElementById("remainingTiles").innerHTML = counter;
 }
 
-$(function(){
-    // Set up a new game
-    newGame();
-
+function tileInit() {
     // Draggable letter tiles
     $(".letterTile-draggable").draggable({
         cursor: "move",
@@ -226,6 +224,11 @@ $(function(){
         snap:".boardTile",
         snap: ".rack",
     });
+}
+
+$(function(){
+    // Set up a new game
+    newGame();
 
     // Droppable board slot
     $(".boardSlot-droppable").droppable({
